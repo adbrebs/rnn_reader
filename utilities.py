@@ -6,13 +6,13 @@ floatX = theano.config.floatX = 'float32'
 
 
 def create_train_tag_values(seq_cont, seq_cont_mask, seq_quest, seq_quest_mask,
-                            tg, candidates, candidates_mask):
+                            tg, candidates, candidates_mask, config):
 
     seq_cont_length = 3
     seq_quest_length = 2
-    batch_size = 4
-    vocab_size = 20
-    n_entities = 10
+    batch_size = config.batch_size
+    vocab_size = config.vocab_size
+    n_entities = config.n_entities
     n_candidates = 5
 
     seq_cont.tag.test_value = np.random.randint(0, vocab_size, (seq_cont_length, batch_size)).astype('int32')
