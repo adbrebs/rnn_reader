@@ -11,7 +11,7 @@ import theano.tensor as T
 
 from raccoon.trainer import Trainer
 from raccoon.extensions import TrainMonitor, ValMonitor
-from raccoon.archi.utils import clip_norm_gradients
+from raccoon.layers.utils import clip_norm_gradients
 
 from utilities import create_train_tag_values
 from data import create_data_generator

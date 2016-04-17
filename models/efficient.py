@@ -2,8 +2,8 @@ import theano
 import theano.tensor as T
 from lasagne.init import GlorotNormal
 
-from raccoon.archi import (GRULayer, EmbeddingLayer,
-                           AttentionLayerEfficient, RnnCovarianceLayer, FFLayer)
+from raccoon.layers import (GRULayer, EmbeddingLayer,
+                            AttentionLayerEfficient, RnnCovarianceLayer, FFLayer)
 
 floatX = theano.config.floatX = 'float32'
 
