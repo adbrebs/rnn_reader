@@ -1,4 +1,4 @@
-from models.efficient import Model
+from models.attention import EfficientAttentionModel
 
 
 # Data generation
@@ -13,15 +13,16 @@ batch_size = 16
 
 # Architecture
 embedding_size = 200
-n_hidden_quest = 256
-n_hidden_cont = 256
+n_hidden_que = 256
+n_hidden_con = 256
 n_out_hidden = 256
-model = Model(vocab_size=vocab_size,
-              embedding_size=embedding_size,
-              n_hidden_question=n_hidden_quest,
-              n_hidden_context=n_hidden_cont,
-              n_out_hidden=n_out_hidden,
-              n_entities=n_entities)
+model = EfficientAttentionModel(
+    vocab_size=vocab_size,
+    embedding_size=embedding_size,
+    n_hidden_que=n_hidden_que,
+    n_hidden_con=n_hidden_con,
+    n_out_hidden=n_out_hidden,
+    n_entities=n_entities)
 
 # Trianing
 algo = 'adam'

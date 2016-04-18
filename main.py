@@ -1,24 +1,23 @@
 import argparse
-import cPickle
 import imp
 import os
 import sys
 
-from lasagne.updates import adam
 import numpy as np
 import theano
-import theano.tensor as T
+
+from lasagne.objectives import categorical_accuracy, categorical_crossentropy
+from lasagne.updates import adam, sgd
+from lasagne.layers import get_all_params, get_output
 
 from raccoon.trainer import Trainer
 from raccoon.extensions import TrainMonitor, ValMonitor
-from raccoon.layers.utils import clip_norm_gradients
 
-from utilities import create_train_tag_values
 from data import create_data_generator
 
 floatX = theano.config.floatX = 'float32'
-theano.config.optimizer = 'None'
-theano.config.compute_test_value = 'raise'
+# theano.config.optimizer = 'None'
+# theano.config.compute_test_value = 'raise'
 np.random.seed(42)
 
 
@@ -38,62 +37,39 @@ def main(cf):
     valid_iterator = create_data_generator(valid_path, vocab_path, cf)
     print 'Done.'
 
-    ##################
-    # MODEL CREATION #
-    ##################
+    ##############################
+    # COST, GRADIENT AND UPDATES #
+    ##############################
 
-    seq_cont = T.matrix('seq_cont', 'int32')
-    seq_cont_mask = T.matrix('seq_cont_mask', floatX)
-    seq_quest = T.matrix('seq_quest', 'int32')
-    seq_quest_mask = T.matrix('seq_quest_mask', floatX)
-    tg = T.vector('tg', 'int32')
-    candidates = T.matrix('candidates', 'int32')
-    candidates_mask = T.matrix('candidates_mask', floatX)
+    output = get_output(cf.model.net)
 
-    create_train_tag_values(seq_cont, seq_cont_mask, seq_quest, seq_quest_mask,
-                            tg, candidates, candidates_mask, cf)
+    tg = cf.model.tg
+    cost = categorical_crossentropy(output, tg).mean()
+    cost.name = 'negll'
 
-    cost, scan_updates, monitoring = cf.model.apply(
-        seq_context=seq_cont,
-        seq_context_mask=seq_cont_mask,
-        seq_question=seq_quest,
-        seq_question_mask=seq_quest_mask,
-        tg=tg,
-        candidates=candidates,
-        candidates_mask=candidates_mask)
+    accuracy = categorical_accuracy(output, tg).mean()
+    accuracy.name = 'accuracy'
 
-    ########################
-    # GRADIENT AND UPDATES #
-    ########################
-
-    params = cf.model.params
-    grads = T.grad(cost, params)
-    grads = clip_norm_gradients(grads)
+    params = get_all_params(cf.model.net, trainable=True)
 
     if cf.algo == 'adam':
-        updates_params = adam(grads, params, 0.0003)
+        updates = adam(cost, params, 0.0003)
     elif cf.algo == 'sgd':
-        updates_params = []
-        for p, g in zip(params, grads):
-            updates_params.append((p, p - cf.learning_rate * g))
+        updates = sgd(cost, params, cf.learning_rate)
     else:
         raise ValueError('Specified algo does not exist')
-
-    updates_all = scan_updates + updates_params
 
     ##############
     # MONITORING #
     ##############
 
+    monitoring_vars = [cost, accuracy]
+
     train_monitor = TrainMonitor(
-        cf.train_freq_print, [seq_cont, seq_cont_mask, seq_quest, seq_quest_mask,
-                              tg, candidates, candidates_mask],
-        [cost] + monitoring, updates_all)
+        cf.train_freq_print, cf.model.vars, monitoring_vars, updates)
 
     valid_monitor = ValMonitor(
-        'Validation', cf.valid_freq_print,
-        [seq_cont, seq_cont_mask, seq_quest, seq_quest_mask,
-         tg, candidates, candidates_mask], [cost] + monitoring,
+        'Validation', cf.valid_freq_print, cf.model.vars, monitoring_vars,
         valid_iterator, apply_at_the_start=False)
 
     train_m = Trainer(train_monitor, [valid_monitor], [])

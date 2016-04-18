@@ -1,4 +1,4 @@
-from models.attentive import Model
+from models.attention import SoftmaxAttentionModel
 
 
 # Data generation
@@ -9,25 +9,26 @@ concat_question_before = False
 sort_batch_count = 20
 vocab_size = 29958
 n_entities = 550
-batch_size = 16
+batch_size = 32
 
 # Architecture
 # sequence processing
 embedding_size = 200
-n_hidden_quest = 256
-n_hidden_cont = 256
+n_hidden_que = 256
+n_hidden_con = 256
 # attention
 n_attention = 100
 # output
 n_out_hidden = 100
 
-model = Model(vocab_size=vocab_size,
-              embedding_size=embedding_size,
-              n_hidden_quest=n_hidden_quest,
-              n_hidden_cont=n_hidden_cont,
-              n_entities=n_entities,
-              n_attention=n_attention,
-              n_out_hidden=n_out_hidden)
+model = SoftmaxAttentionModel(
+    vocab_size=vocab_size,
+    embedding_size=embedding_size,
+    n_hidden_que=n_hidden_que,
+    n_hidden_con=n_hidden_con,
+    n_entities=n_entities,
+    n_attention=n_attention,
+    n_out_hidden=n_out_hidden)
 
 # Training
 algo = 'adam'

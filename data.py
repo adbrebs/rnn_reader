@@ -154,11 +154,8 @@ def create_data_generator(path, vocab_file, config):
     def gen():
         for (seq_cont, seq_cont_mask, seq_quest, seq_quest_mask,
              tg, candidates, candidates_mask) in stream.get_epoch_iterator():
-            seq_cont = np.swapaxes(seq_cont, 0, 1)
-            seq_cont_mask = np.swapaxes(seq_cont_mask, 0, 1).astype('float32')
-            seq_quest = np.swapaxes(seq_quest, 0, 1)
-            seq_quest_mask = np.swapaxes(seq_quest_mask, 0, 1).astype('float32')
-
+            seq_cont_mask = seq_cont_mask.astype('float32')
+            seq_quest_mask = seq_quest_mask.astype('float32')
             candidates_mask = candidates_mask.astype('float32')
 
             yield (seq_cont, seq_cont_mask, seq_quest, seq_quest_mask,
