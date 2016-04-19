@@ -1,17 +1,21 @@
+"""
+Code from https://github.com/thomasmesnard/DeepMind-Teaching-Machines-to-Read-
+and-Comprehend.
+Credits: Thomas Mesnard, Etienne Simon, Alex Auvolat.
+"""
+
 import logging
 import random
 import numpy as np
-
-import cPickle
 
 from picklable_itertools import iter_
 
 from fuel.datasets import Dataset
 from fuel.streams import DataStream
 from fuel.schemes import IterationScheme, ConstantScheme
-from fuel.transformers import Batch, Mapping, SortMapping, Unpack, Padding, Transformer
+from fuel.transformers import Batch, Mapping, SortMapping, Unpack, Padding, \
+    Transformer
 
-import sys
 import os
 
 logging.basicConfig(level='INFO')
@@ -45,11 +49,13 @@ class QADataset(Dataset):
             return self.reverse_vocab['<UNK>']
 
     def to_word_ids(self, s, cand_mapping):
-        return np.array([self.to_word_id(x, cand_mapping) for x in s.split(' ')], dtype=np.int32)
+        return np.array([self.to_word_id(x, cand_mapping)
+                         for x in s.split(' ')], dtype=np.int32)
 
     def get_data(self, state=None, request=None):
         if request is None or state is not None:
-            raise ValueError("Expected a request (name of a question file) and no state.")
+            raise ValueError("Expected a request (name of a question file) and"
+                             " no state.")
 
         lines = [l.rstrip('\n') for l in open(os.path.join(self.path, request))]
 
@@ -60,7 +66,8 @@ class QADataset(Dataset):
 
         entities = range(self.n_entities)
         while len(cand) > len(entities):
-            logger.warning("Too many entities (%d) for question: %s, using duplicate entity identifiers"
+            logger.warning("Too many entities (%d) for question: %s, using "
+                           "duplicate entity identifiers"
                            %(len(cand), request))
             entities = entities + entities
         random.shuffle(entities)
@@ -68,7 +75,8 @@ class QADataset(Dataset):
 
         ctx = self.to_word_ids(ctx, cand_mapping)
         q = self.to_word_ids(q, cand_mapping)
-        cand = np.array([self.to_word_id(x, cand_mapping) for x in cand], dtype=np.int32)
+        cand = np.array([self.to_word_id(x, cand_mapping) for x in cand],
+                        dtype=np.int32)
         a = np.int32(self.to_word_id(a, cand_mapping))
 
         if not a < self.n_entities:

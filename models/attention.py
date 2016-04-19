@@ -30,9 +30,9 @@ class AttentionModel(ReaderModel):
                                    W=embed_con.W)
 
         gru_con = GRULayer(embed_con, n_hidden_con,
-                           mask_input=self.in_con_mask)
+                           mask_input=self.in_con_mask, grad_clipping=10)
 
-        gru_que = GRULayer(embed_que, n_hidden_que,
+        gru_que = GRULayer(embed_que, n_hidden_que, grad_clipping=10,
                            mask_input=self.in_que_mask, only_return_final=True)
 
         #############

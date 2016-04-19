@@ -130,17 +130,13 @@ class EfficientAttentionLayer(MergeLayer):
 
         seq_input *= T.shape_padright(seq_mask)
         # (batch_size, n_hidden_question, n_hidden_question)
-        covariance = (T.shape_padaxis(seq_input, 2) *
-                      T.shape_padaxis(seq_input, 3))
-        covariance = T.sum(covariance, axis=1)
-
+        covariance = T.batched_dot(seq_input.dimshuffle(0, 2, 1), seq_input)
         # (batch_size, n_hidden_question)
         att = T.sum(covariance * condition.dimshuffle((0, 'x', 1)), axis=2)
 
+        att = 1000 * att / T.sum(seq_mask, axis=1, keepdims=True)
         # norm2_att = T.sum(att * condition, axis=1, keepdims=True)
         # att = 1000 * att / norm2_att
-
-        att = 1000 * att / T.sum(seq_mask, axis=1, keepdims=True)
 
         return att
 

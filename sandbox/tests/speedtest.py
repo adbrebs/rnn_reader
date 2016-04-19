@@ -36,8 +36,7 @@ if mode:
 
 else:
     l = GRULayer(emb_size, n_hidden, lasagne.init.GlorotUniform())
-    out, _ = l.apply(seq_con, mask,
-                  T.alloc(0.0, bs, n_hidden).astype(dtype='float32'))
+    out, _ = l.apply(seq_con, mask, T.dot(T.ones((bs, 1)), T.zeros((1, n_hidden))))
 
 print 'compiling...',
 f = theano.function([], out)
