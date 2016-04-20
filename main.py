@@ -7,18 +7,18 @@ import numpy as np
 import theano
 
 from lasagne.objectives import categorical_accuracy, categorical_crossentropy
-from lasagne.updates import adam, sgd
+from lasagne.updates import adam, sgd, momentum
 from lasagne.layers import get_all_params, get_output
 
 from raccoon.trainer import Trainer
-from raccoon.extensions import TrainMonitor, ValMonitor
+from raccoon.extensions import TrainMonitor, ValMonitor, VariableSaver
 
-from data import create_data_generator
+from data import create_data_generators
 
 floatX = theano.config.floatX = 'float32'
 # theano.config.optimizer = 'None'
 # theano.config.compute_test_value = 'raise'
-np.random.seed(42)
+# np.random.seed(42)
 
 
 def main(cf):
@@ -27,15 +27,7 @@ def main(cf):
     # DATA #
     ########
 
-    print 'Create data generators...',
-    data_path = os.path.join(os.getenv("DATAPATH"), "deepmind-qa/cnn")
-    train_path = os.path.join(data_path, "questions/training")
-    valid_path = os.path.join(data_path, "questions/validation")
-    vocab_path = os.path.join(data_path, "stats/training/vocab.txt")
-
-    train_iterator = create_data_generator(train_path, vocab_path, cf)
-    valid_iterator = create_data_generator(valid_path, vocab_path, cf)
-    print 'Done.'
+    train_iterator, valid_iterator, test_iterator = create_data_generators(cf)
 
     ##############################
     # COST, GRADIENT AND UPDATES #
@@ -53,9 +45,11 @@ def main(cf):
     params = get_all_params(cf.model.net, trainable=True)
 
     if cf.algo == 'adam':
-        updates = adam(cost, params, 0.0003)
+        updates = adam(cost, params, cf.learning_rate)
     elif cf.algo == 'sgd':
         updates = sgd(cost, params, cf.learning_rate)
+    elif cf.algo == 'momentum':
+        updates = momentum(cost, params, cf.learning_rate)
     else:
         raise ValueError('Specified algo does not exist')
 
@@ -72,7 +66,28 @@ def main(cf):
         'Validation', cf.valid_freq_print, cf.model.vars, monitoring_vars,
         valid_iterator, apply_at_the_start=False)
 
-    train_m = Trainer(train_monitor, [valid_monitor], [])
+    test_monitor = ValMonitor(
+        'Test', cf.valid_freq_print, cf.model.vars, monitoring_vars,
+        valid_iterator, apply_at_the_end=True)
+
+    train_saver = VariableSaver(
+        train_monitor, cf.dump_every_batches, cf.dump_path, 'train')
+
+    valid_saver = VariableSaver(
+        valid_monitor, cf.dump_every_batches, cf.dump_path, 'valid')
+
+    test_saver = VariableSaver(test_monitor, None, cf.dump_path, 'test')
+
+    extensions = [
+        valid_monitor,
+        test_monitor,
+
+        train_saver,
+        valid_saver,
+        test_saver
+    ]
+
+    train_m = Trainer(train_monitor, extensions, [])
 
     ############
     # TRAINING #
@@ -102,5 +117,11 @@ if __name__ == "__main__":
     options = parser.parse_args()
 
     config = imp.load_source('config', options.config_path)
+
+    exp_id = np.random.randint(10**12)
+    dump_path = os.path.join(os.getenv('TMP_PATH'), 'deepmind_qa', str(exp_id))
+    if not os.path.exists(dump_path):
+        os.makedirs(dump_path)
+    config.dump_path = dump_path
 
     main(config)

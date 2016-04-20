@@ -1,4 +1,4 @@
-from models.attention import SoftmaxAttentionModel
+from models.attention import EfficientAttentionModel
 
 
 # Data generation
@@ -12,26 +12,23 @@ n_entities = 550
 batch_size = 32
 
 # Architecture
-embedding_size = 200
-n_hidden_que = 256
-n_hidden_con = 256
-n_attention = 100
-n_out_hidden = 100
+embedding_size = 512
+n_hidden_que = 512
+n_hidden_con = 512
+n_out_hidden = 512
 depth_rnn = 1
 grad_clipping = 10
-
-model = SoftmaxAttentionModel(
+model = EfficientAttentionModel(
     vocab_size=vocab_size,
     embedding_size=embedding_size,
     n_hidden_que=n_hidden_que,
     n_hidden_con=n_hidden_con,
-    n_entities=n_entities,
-    n_attention=n_attention,
     n_out_hidden=n_out_hidden,
+    n_entities=n_entities,
     depth_rnn=depth_rnn,
     grad_clipping=grad_clipping)
 
-# Training
+# Trianing
 algo = 'adam'
 learning_rate = 0.0003
 

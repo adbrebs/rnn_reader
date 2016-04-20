@@ -3,23 +3,27 @@ import theano.tensor as T
 
 from lasagne.layers import (
     EmbeddingLayer, GRULayer, DenseLayer, ElemwiseSumLayer, NonlinearityLayer,
-    dimshuffle, SliceLayer, ElemwiseMergeLayer, ExpressionLayer, ReshapeLayer)
+    dimshuffle, SliceLayer, ElemwiseMergeLayer, ExpressionLayer)
 
 from models import (
     ReaderModel, EfficientAttentionLayer, CandidateOutputLayer,
-    SequenceSoftmax, ForgetSizeLayer)
+    SequenceSoftmax, ForgetSizeLayer, create_deep_rnn,
+    non_flattening_dense_layer)
 
 floatX = theano.config.floatX = 'float32'
 
 
 class AttentionModel(ReaderModel):
     def __init__(self, vocab_size, n_entities, embedding_size,
-                 n_hidden_que, n_hidden_con, n_out_hidden):
+                 n_hidden_que, n_hidden_con, n_out_hidden, depth_rnn=1,
+                 grad_clipping=10):
         ReaderModel.__init__(self, vocab_size, n_entities, embedding_size)
 
         self.n_hidden_question = n_hidden_que
         self.n_hidden_context = n_hidden_con
         self.n_out_hidden = n_out_hidden
+        self.depth_rnn = depth_rnn
+        self.grad_clipping = grad_clipping
 
         ##################
         # SEQ PROCESSING #
@@ -29,17 +33,19 @@ class AttentionModel(ReaderModel):
         embed_que = EmbeddingLayer(self.in_que, vocab_size, embedding_size,
                                    W=embed_con.W)
 
-        gru_con = GRULayer(embed_con, n_hidden_con,
-                           mask_input=self.in_con_mask, grad_clipping=10)
-
-        gru_que = GRULayer(embed_que, n_hidden_que, grad_clipping=10,
-                           mask_input=self.in_que_mask, only_return_final=True)
+        gru_con = create_deep_rnn(
+            embed_con, self.in_con_mask, GRULayer, depth_rnn,
+            num_units=n_hidden_con, grad_clipping=grad_clipping)
+        gru_que = create_deep_rnn(
+            embed_que, self.in_que_mask, GRULayer, depth_rnn,
+            num_units=n_hidden_que, only_return_final=True,
+            grad_clipping=grad_clipping)
 
         #############
         # ATTENTION #
         #############
 
-        att = self.process_attention(gru_con, self.in_con_mask, gru_que)
+        att = self.create_attention(gru_con, self.in_con_mask, gru_que)
 
         ##########
         # OUTPUT #
@@ -55,39 +61,36 @@ class AttentionModel(ReaderModel):
 
         self.net = CandidateOutputLayer(out, self.in_cand, self.in_cand_mask)
 
-    def process_attention(self, gru_con, in_con_mask, gru_que):
+    def create_attention(self, gru_con, in_con_mask, gru_que):
         raise NotImplemented
 
 
 class EfficientAttentionModel(AttentionModel):
-    def process_attention(self, gru_con, in_con_mask, gru_que):
+    def create_attention(self, gru_con, in_con_mask, gru_que):
         return EfficientAttentionLayer(gru_con, self.in_con_mask, gru_que)
 
 
 class SoftmaxAttentionModel(AttentionModel):
     def __init__(self, vocab_size, n_entities, embedding_size,
-                 n_hidden_que, n_hidden_con, n_out_hidden, n_attention):
+                 n_hidden_que, n_hidden_con, n_out_hidden, n_attention,
+                 depth_rnn=1, grad_clipping=10):
         self.n_attention = n_attention
-        AttentionModel.__init__(self, vocab_size, n_entities, embedding_size,
-                                n_hidden_que, n_hidden_con, n_out_hidden)
+        AttentionModel.__init__(
+            self, vocab_size, n_entities, embedding_size, n_hidden_que,
+            n_hidden_con, n_out_hidden, depth_rnn=depth_rnn,
+            grad_clipping=grad_clipping)
 
-    def non_flattening_dense(self, layer, *args, **kwargs):
-        batchsize, seqlen = self.in_con.input_var.shape
-        l_flat = ReshapeLayer(layer, (-1, [2]))
-        l_dense = DenseLayer(l_flat, *args, **kwargs)
-        return ReshapeLayer(l_dense, (batchsize, seqlen, -1))
-
-    def process_attention(self, gru_con, in_con_mask, gru_que):
+    def create_attention(self, gru_con, in_con_mask, gru_que):
 
         # (batch_size, n_attention)
-        gru_cond2 = self.non_flattening_dense(gru_con, self.n_attention,
-                                              nonlinearity=None)
+        gru_cond2 = non_flattening_dense_layer(gru_con, self.n_attention,
+                                               nonlinearity=None)
         gru_que2 = DenseLayer(gru_que, self.n_attention, nonlinearity=None)
         gru_que2 = dimshuffle(gru_que2, (0, 'x', 1))
 
         att = ElemwiseSumLayer([gru_cond2, gru_que2])
         att = NonlinearityLayer(att, T.tanh)
-        att = SliceLayer(self.non_flattening_dense(att, 1, nonlinearity=None),
+        att = SliceLayer(non_flattening_dense_layer(att, 1, nonlinearity=None),
                          indices=0, axis=2)
 
         att_softmax = SequenceSoftmax(att, self.in_con_mask)

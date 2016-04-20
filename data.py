@@ -7,6 +7,7 @@ Credits: Thomas Mesnard, Etienne Simon, Alex Auvolat.
 import logging
 import random
 import numpy as np
+import shutil
 
 from picklable_itertools import iter_
 
@@ -170,6 +171,29 @@ def create_data_generator(path, vocab_file, config):
                    tg, candidates, candidates_mask)
 
     return gen
+
+
+def create_data_generators(cf):
+    print 'Create data generators...'
+    data_path = os.path.join(os.getenv("TMP_PATH"), "deepmind-qa/cnn")
+
+    if not os.path.exists(data_path):
+        original_data_path = os.path.join(os.getenv("DATA_PATH"), "deepmind-qa")
+        print '  Dumping data in local folder...',
+        shutil.copytree(original_data_path, data_path)
+        print ' dumping finished.'
+
+    train_path = os.path.join(data_path, "questions/training")
+    valid_path = os.path.join(data_path, "questions/validation")
+    test_path = os.path.join(data_path, "questions/test")
+    vocab_path = os.path.join(data_path, "stats/training/vocab.txt")
+
+    train_iterator = create_data_generator(train_path, vocab_path, cf)
+    valid_iterator = create_data_generator(valid_path, vocab_path, cf)
+    test_iterator = create_data_generator(test_path, vocab_path, cf)
+
+    print '  data generators created.'
+    return train_iterator, valid_iterator, test_iterator
 
 if __name__ == "__main__":
     # Test

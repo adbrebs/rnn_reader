@@ -3,7 +3,9 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-from lasagne.layers import InputLayer, MergeLayer, Layer
+from lasagne.layers import (
+    InputLayer, MergeLayer, Layer, ElemwiseMergeLayer, dimshuffle,
+    ReshapeLayer, DenseLayer)
 
 floatX = theano.config.floatX = 'float32'
 
@@ -131,8 +133,9 @@ class EfficientAttentionLayer(MergeLayer):
         seq_input *= T.shape_padright(seq_mask)
         # (batch_size, n_hidden_question, n_hidden_question)
         covariance = T.batched_dot(seq_input.dimshuffle(0, 2, 1), seq_input)
-        # (batch_size, n_hidden_question)
-        att = T.sum(covariance * condition.dimshuffle((0, 'x', 1)), axis=2)
+        # (batch_size, n_hidden_question), equivalent to the following line:
+        # att = T.sum(covariance * condition.dimshuffle((0, 'x', 1)), axis=2)
+        att = T.batched_dot(covariance, condition.dimshuffle((0, 1)))
 
         att = 1000 * att / T.sum(seq_mask, axis=1, keepdims=True)
         # norm2_att = T.sum(att * condition, axis=1, keepdims=True)
@@ -189,3 +192,36 @@ class ForgetSizeLayer(Layer):
         shape = list(input_shape)
         shape[self.axis] = None
         return tuple(shape)
+
+
+def apply_mask(layer_seq, layer_seq_mask):
+    """
+    seq: layer of shape (batch_size, length_seq, n_features)
+    seq_mask: layer of shape (batch_size, length_seq)
+    """
+    return ElemwiseMergeLayer(
+        [ForgetSizeLayer(dimshuffle(layer_seq_mask,
+                                    (0, 1, 'x'))), layer_seq], T.mul)
+
+
+def create_deep_rnn(layer, layer_mask, layer_class, depth,
+                    only_return_final=False, **kwargs):
+    for i in range(depth):
+        if i > 0:
+            layer = apply_mask(layer, layer_mask)
+
+        if i == depth - 1:
+            return_final = only_return_final
+        else:
+            return_final = False
+
+        layer = layer_class(layer, mask_input=layer_mask,
+                            only_return_final=return_final, **kwargs)
+    return layer
+
+
+def non_flattening_dense_layer(self, layer, *args, **kwargs):
+    batchsize, seqlen = self.in_con.input_var.shape
+    l_flat = ReshapeLayer(layer, (-1, [2]))
+    l_dense = DenseLayer(l_flat, *args, **kwargs)
+    return ReshapeLayer(l_dense, (batchsize, seqlen, -1))
