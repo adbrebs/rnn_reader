@@ -12,13 +12,16 @@ n_entities = 550
 batch_size = 32
 
 # Architecture
-embedding_size = 200
-n_hidden_que = 256
-n_hidden_con = 256
+embedding_size = 100
+n_hidden_que = 100
+n_hidden_con = 100
 n_attention = 100
 n_out_hidden = 100
 depth_rnn = 1
 grad_clipping = 10
+residual = False
+skip_connections = False
+bidir = False
 
 model = SoftmaxAttentionModel(
     vocab_size=vocab_size,
@@ -29,7 +32,9 @@ model = SoftmaxAttentionModel(
     n_attention=n_attention,
     n_out_hidden=n_out_hidden,
     depth_rnn=depth_rnn,
-    grad_clipping=grad_clipping)
+    grad_clipping=grad_clipping,
+    residual=residual,
+    bidir=bidir)
 
 # Training
 algo = 'adam'

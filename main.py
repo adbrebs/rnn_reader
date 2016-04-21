@@ -27,12 +27,14 @@ def main(cf):
     # DATA #
     ########
 
+    print 'Create data generators...'
     train_iterator, valid_iterator, test_iterator = create_data_generators(cf)
 
     ##############################
     # COST, GRADIENT AND UPDATES #
     ##############################
 
+    print 'Build model...',
     output = get_output(cf.model.net)
 
     tg = cf.model.tg
@@ -57,6 +59,7 @@ def main(cf):
     # MONITORING #
     ##############
 
+    print 'Creating extensions and compiling functions...',
     monitoring_vars = [cost, accuracy]
 
     train_monitor = TrainMonitor(
@@ -64,11 +67,11 @@ def main(cf):
 
     valid_monitor = ValMonitor(
         'Validation', cf.valid_freq_print, cf.model.vars, monitoring_vars,
-        valid_iterator, apply_at_the_start=False)
+        valid_iterator)
 
     test_monitor = ValMonitor(
         'Test', cf.valid_freq_print, cf.model.vars, monitoring_vars,
-        valid_iterator, apply_at_the_end=True)
+        valid_iterator)
 
     train_saver = VariableSaver(
         train_monitor, cf.dump_every_batches, cf.dump_path, 'train')
@@ -87,28 +90,13 @@ def main(cf):
         test_saver
     ]
 
-    train_m = Trainer(train_monitor, extensions, [])
+    train_m = Trainer(train_monitor, train_iterator, extensions, [])
 
     ############
     # TRAINING #
     ############
 
-    it = epoch = 0
-
-    try:
-        while True:
-            epoch += 1
-            for inputs in train_iterator():
-                # print inputs[0].shape
-                res = train_m.process_batch(epoch, it, *inputs)
-
-                it += 1
-                if res:
-                    train_m.finish(it)
-                    sys.exit()
-    except KeyboardInterrupt:
-        print 'Training interrupted by user.'
-        train_m.finish(it)
+    train_m.train()
 
 
 if __name__ == "__main__":

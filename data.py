@@ -161,20 +161,28 @@ def create_data_generator(path, vocab_file, config):
     stream = Padding(stream, mask_sources=['context', 'question', 'candidates'], mask_dtype='int32')
 
     def gen():
-        for (seq_cont, seq_cont_mask, seq_quest, seq_quest_mask,
-             tg, candidates, candidates_mask) in stream.get_epoch_iterator():
-            seq_cont_mask = seq_cont_mask.astype('float32')
-            seq_quest_mask = seq_quest_mask.astype('float32')
-            candidates_mask = candidates_mask.astype('float32')
 
-            yield (seq_cont, seq_cont_mask, seq_quest, seq_quest_mask,
-                   tg, candidates, candidates_mask)
+        if not config.concat_ctx_and_question:
+            for (seq_cont, seq_cont_mask, seq_quest, seq_quest_mask, tg,
+                 candidates, candidates_mask) in stream.get_epoch_iterator():
+                seq_cont_mask = seq_cont_mask.astype('float32')
+                seq_quest_mask = seq_quest_mask.astype('float32')
+                candidates_mask = candidates_mask.astype('float32')
 
+                yield (seq_cont, seq_cont_mask, seq_quest, seq_quest_mask,
+                       tg, candidates, candidates_mask)
+        else:
+
+            for (seq, seq_mask, tg, candidates, candidates_mask) \
+                    in stream.get_epoch_iterator():
+                seq_mask = seq_mask.astype('float32')
+                candidates_mask = candidates_mask.astype('float32')
+
+                yield (seq, seq_mask, tg, candidates, candidates_mask)
     return gen
 
 
 def create_data_generators(cf):
-    print 'Create data generators...'
     data_path = os.path.join(os.getenv("TMP_PATH"), "deepmind-qa/cnn")
 
     if not os.path.exists(data_path):

@@ -6,24 +6,25 @@ from lasagne.layers import (
     dimshuffle, SliceLayer, ElemwiseMergeLayer, ExpressionLayer)
 
 from models import (
-    ReaderModel, EfficientAttentionLayer, CandidateOutputLayer,
+    ReaderTwoSeqModel, EfficientAttentionLayer, CandidateOutputLayer,
     SequenceSoftmax, ForgetSizeLayer, create_deep_rnn,
     non_flattening_dense_layer)
 
 floatX = theano.config.floatX = 'float32'
 
 
-class AttentionModel(ReaderModel):
+class AttentionModel(ReaderTwoSeqModel):
     def __init__(self, vocab_size, n_entities, embedding_size,
-                 n_hidden_que, n_hidden_con, n_out_hidden, depth_rnn=1,
-                 grad_clipping=10):
-        ReaderModel.__init__(self, vocab_size, n_entities, embedding_size)
+                 n_hidden_que, n_hidden_con, n_out_hidden, residual=False,
+                 depth_rnn=1, grad_clipping=10, skip_connections=False,
+                 bidir=False):
+        ReaderTwoSeqModel.__init__(
+            self, vocab_size, n_entities, embedding_size, residual, depth_rnn,
+            grad_clipping, skip_connections, bidir)
 
         self.n_hidden_question = n_hidden_que
         self.n_hidden_context = n_hidden_con
         self.n_out_hidden = n_out_hidden
-        self.depth_rnn = depth_rnn
-        self.grad_clipping = grad_clipping
 
         ##################
         # SEQ PROCESSING #
@@ -35,24 +36,26 @@ class AttentionModel(ReaderModel):
 
         gru_con = create_deep_rnn(
             embed_con, self.in_con_mask, GRULayer, depth_rnn,
-            num_units=n_hidden_con, grad_clipping=grad_clipping)
+            num_units=n_hidden_con, grad_clipping=grad_clipping,
+            residual=residual, skip_connections=skip_connections, bidir=bidir)
         gru_que = create_deep_rnn(
             embed_que, self.in_que_mask, GRULayer, depth_rnn,
-            num_units=n_hidden_que, only_return_final=True,
-            grad_clipping=grad_clipping)
+            num_units=n_hidden_que, grad_clipping=grad_clipping,
+            residual=residual, skip_connections=skip_connections, bidir=bidir)
 
         #############
         # ATTENTION #
         #############
 
-        att = self.create_attention(gru_con, self.in_con_mask, gru_que)
+        que_condition = SliceLayer(gru_que, indices=-1, axis=1)
+        att = self.create_attention(gru_con, self.in_con_mask, que_condition)
 
         ##########
         # OUTPUT #
         ##########
 
         out_att = DenseLayer(att, n_out_hidden, nonlinearity=None)
-        out_que = DenseLayer(gru_que, n_out_hidden, nonlinearity=None)
+        out_que = DenseLayer(que_condition, n_out_hidden, nonlinearity=None)
 
         out_sum = ElemwiseSumLayer([out_att, out_que])
         out_tanh = NonlinearityLayer(out_sum, nonlinearity=T.tanh)
@@ -61,31 +64,33 @@ class AttentionModel(ReaderModel):
 
         self.net = CandidateOutputLayer(out, self.in_cand, self.in_cand_mask)
 
-    def create_attention(self, gru_con, in_con_mask, gru_que):
+    def create_attention(self, gru_con, in_con_mask, condition):
         raise NotImplemented
 
 
 class EfficientAttentionModel(AttentionModel):
-    def create_attention(self, gru_con, in_con_mask, gru_que):
-        return EfficientAttentionLayer(gru_con, self.in_con_mask, gru_que)
+    def create_attention(self, gru_con, in_con_mask, condition):
+        return EfficientAttentionLayer(gru_con, self.in_con_mask, condition)
 
 
 class SoftmaxAttentionModel(AttentionModel):
     def __init__(self, vocab_size, n_entities, embedding_size,
                  n_hidden_que, n_hidden_con, n_out_hidden, n_attention,
-                 depth_rnn=1, grad_clipping=10):
+                 depth_rnn=1, grad_clipping=10, skip_connections=False,
+                 residual=False, bidir=False):
         self.n_attention = n_attention
         AttentionModel.__init__(
             self, vocab_size, n_entities, embedding_size, n_hidden_que,
             n_hidden_con, n_out_hidden, depth_rnn=depth_rnn,
-            grad_clipping=grad_clipping)
+            grad_clipping=grad_clipping, residual=residual,
+            skip_connections=skip_connections, bidir=bidir)
 
-    def create_attention(self, gru_con, in_con_mask, gru_que):
+    def create_attention(self, gru_con, in_con_mask, condition):
 
         # (batch_size, n_attention)
         gru_cond2 = non_flattening_dense_layer(gru_con, self.n_attention,
                                                nonlinearity=None)
-        gru_que2 = DenseLayer(gru_que, self.n_attention, nonlinearity=None)
+        gru_que2 = DenseLayer(condition, self.n_attention, nonlinearity=None)
         gru_que2 = dimshuffle(gru_que2, (0, 'x', 1))
 
         att = ElemwiseSumLayer([gru_cond2, gru_que2])
