@@ -1,6 +1,7 @@
+import cPickle
 import numpy as np
+import os
 import theano
-import theano.tensor as T
 
 floatX = theano.config.floatX = 'float32'
 
@@ -25,3 +26,27 @@ def create_train_tag_values(seq_cont, seq_cont_mask, seq_quest, seq_quest_mask,
 
     candidates.tag.test_value = np.repeat(np.arange(n_candidates, dtype='int32')[None, :], batch_size, axis=0)
     candidates_mask.tag.test_value = np.ones((batch_size, n_candidates), dtype=floatX)
+
+
+def save_config(cf, dump_path):
+    params = {}
+
+    save_field('embedding_size', cf, params)
+    save_field('n_hidden_que', cf, params)
+    save_field('n_hidden_con', cf, params)
+    save_field('depth_rnn', cf, params)
+    save_field('grad_clipping', cf, params)
+    save_field('residual', cf, params)
+    save_field('skip_connections', cf, params)
+    save_field('bidir', cf, params)
+    save_field('dropout', cf, params)
+    save_field('learning_rate', cf, params)
+
+    cPickle.dump(params, open(os.path.join(dump_path, 'cf_params.pkl'), 'wb'))
+
+    return params
+
+
+def save_field(field_name, cf, params):
+    if hasattr(cf, field_name):
+        params[field_name] = getattr(cf, field_name)

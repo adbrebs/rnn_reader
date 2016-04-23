@@ -11,7 +11,8 @@ floatX = theano.config.floatX = 'float32'
 from raccoon.layers.reccurrent import GRULayer
 
 
-
+# theano.config.profile='True'
+# theano.config.optimizer = 'None'
 
 mode = False
 
@@ -33,17 +34,19 @@ if mode:
     y = lasagne.layers.GRULayer(x, n_hidden, mask_input=mask)
 
     out = lasagne.layers.get_output(y)
+    g = T.grad(out.sum(), seq_con1)
 
 else:
     l = GRULayer(emb_size, n_hidden, lasagne.init.GlorotUniform())
     out, _ = l.apply(seq_con, mask, T.dot(T.ones((bs, 1)), T.zeros((1, n_hidden))))
+    g = T.grad(out.sum(), seq_con)
 
 print 'compiling...',
-f = theano.function([], out)
+f = theano.function([], g)
 print 'done'
 
 
-b = time.clock()
+b = time.time()
 for i in range(3):
     f()
-print time.clock() - b
+print time.time() - b

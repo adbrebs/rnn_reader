@@ -1,19 +1,21 @@
 import argparse
 import imp
 import os
+import shutil
 import sys
 
 import numpy as np
 import theano
 
-from lasagne.objectives import categorical_accuracy, categorical_crossentropy
 from lasagne.updates import adam, sgd, momentum
 from lasagne.layers import get_all_params, get_output
 
 from raccoon.trainer import Trainer
-from raccoon.extensions import TrainMonitor, ValMonitor, VariableSaver
+from raccoon.extensions import (TrainMonitor, ValMonitor, VariableSaver,
+                                MaxTime, MaxIteration)
 
 from data import create_data_generators
+from utilities import save_config
 
 floatX = theano.config.floatX = 'float32'
 # theano.config.optimizer = 'None'
@@ -35,14 +37,10 @@ def main(cf):
     ##############################
 
     print 'Build model...',
-    output = get_output(cf.model.net)
-
     tg = cf.model.tg
-    cost = categorical_crossentropy(output, tg).mean()
-    cost.name = 'negll'
 
-    accuracy = categorical_accuracy(output, tg).mean()
-    accuracy.name = 'accuracy'
+    cost, accuracy = cf.model.compute_cost(deterministic=False)
+    cost_val, accuracy_val = cf.model.compute_cost(deterministic=True)
 
     params = get_all_params(cf.model.net, trainable=True)
 
@@ -60,11 +58,11 @@ def main(cf):
     ##############
 
     print 'Creating extensions and compiling functions...',
-    monitoring_vars = [cost, accuracy]
 
     train_monitor = TrainMonitor(
-        cf.train_freq_print, cf.model.vars, monitoring_vars, updates)
+        cf.train_freq_print, cf.model.vars, [cost, accuracy], updates)
 
+    monitoring_vars = [cost_val, accuracy_val]
     valid_monitor = ValMonitor(
         'Validation', cf.valid_freq_print, cf.model.vars, monitoring_vars,
         valid_iterator)
@@ -81,6 +79,13 @@ def main(cf):
 
     test_saver = VariableSaver(test_monitor, None, cf.dump_path, 'test')
 
+    # Ending conditions
+    end_conditions = []
+    if hasattr(cf, 'max_iter'):
+        end_conditions.append(MaxIteration(cf.max_iter))
+    if hasattr(cf, 'max_time'):
+        end_conditions.append(MaxTime(cf.max_iter))
+
     extensions = [
         valid_monitor,
         test_monitor,
@@ -90,7 +95,8 @@ def main(cf):
         test_saver
     ]
 
-    train_m = Trainer(train_monitor, train_iterator, extensions, [])
+    train_m = Trainer(train_monitor, train_iterator,
+                      extensions, end_conditions)
 
     ############
     # TRAINING #
@@ -101,15 +107,34 @@ def main(cf):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('-e', '--exp_name', default='bazar')
     parser.add_argument('-s', '--config_path')
+    parser.add_argument('-i', '--job_id', default=None)
     options = parser.parse_args()
+
+    if not options.job_id:
+        job_id = np.random.randint(10**6)
+    else:
+        job_id = options.job_id
+
+    print 'EXP name: {}'.format(options.exp_name)
+    print 'config file: {}'.format(options.config_path)
+    print 'job ID: {}'.format(job_id)
 
     config = imp.load_source('config', options.config_path)
 
-    exp_id = np.random.randint(10**12)
-    dump_path = os.path.join(os.getenv('TMP_PATH'), 'deepmind_qa', str(exp_id))
+    config_name = os.path.splitext(options.config_path)[0]
+    dump_path = os.path.join(os.getenv('TMP_PATH'), 'deepmind_qa',
+                             options.exp_name,
+                             config_name + '_' + str(job_id))
     if not os.path.exists(dump_path):
         os.makedirs(dump_path)
     config.dump_path = dump_path
+
+    # Copy config file in the dump experiment path
+    shutil.copy(options.config_path, os.path.join(dump_path, 'cf.py'))
+
+    # Save config parameters (some of them might be generated at test time)
+    print save_config(config, dump_path)
 
     main(config)

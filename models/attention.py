@@ -3,7 +3,7 @@ import theano.tensor as T
 
 from lasagne.layers import (
     EmbeddingLayer, GRULayer, DenseLayer, ElemwiseSumLayer, NonlinearityLayer,
-    dimshuffle, SliceLayer, ElemwiseMergeLayer, ExpressionLayer)
+    dimshuffle, SliceLayer, ElemwiseMergeLayer, ExpressionLayer, DropoutLayer)
 
 from models import (
     ReaderTwoSeqModel, EfficientAttentionLayer, CandidateOutputLayer,
@@ -17,10 +17,10 @@ class AttentionModel(ReaderTwoSeqModel):
     def __init__(self, vocab_size, n_entities, embedding_size,
                  n_hidden_que, n_hidden_con, n_out_hidden, residual=False,
                  depth_rnn=1, grad_clipping=10, skip_connections=False,
-                 bidir=False):
+                 bidir=False, dropout=False):
         ReaderTwoSeqModel.__init__(
             self, vocab_size, n_entities, embedding_size, residual, depth_rnn,
-            grad_clipping, skip_connections, bidir)
+            grad_clipping, skip_connections, bidir, dropout)
 
         self.n_hidden_question = n_hidden_que
         self.n_hidden_context = n_hidden_con
@@ -58,9 +58,13 @@ class AttentionModel(ReaderTwoSeqModel):
         out_que = DenseLayer(que_condition, n_out_hidden, nonlinearity=None)
 
         out_sum = ElemwiseSumLayer([out_att, out_que])
+        if dropout:
+            out_sum = DropoutLayer(out_sum, dropout)
         out_tanh = NonlinearityLayer(out_sum, nonlinearity=T.tanh)
 
         out = DenseLayer(out_tanh, self.n_entities, nonlinearity=None)
+        if dropout:
+            out = DropoutLayer(out, dropout)
 
         self.net = CandidateOutputLayer(out, self.in_cand, self.in_cand_mask)
 
@@ -77,26 +81,26 @@ class SoftmaxAttentionModel(AttentionModel):
     def __init__(self, vocab_size, n_entities, embedding_size,
                  n_hidden_que, n_hidden_con, n_out_hidden, n_attention,
                  depth_rnn=1, grad_clipping=10, skip_connections=False,
-                 residual=False, bidir=False):
+                 residual=False, bidir=False, dropout=False):
         self.n_attention = n_attention
         AttentionModel.__init__(
             self, vocab_size, n_entities, embedding_size, n_hidden_que,
             n_hidden_con, n_out_hidden, depth_rnn=depth_rnn,
             grad_clipping=grad_clipping, residual=residual,
-            skip_connections=skip_connections, bidir=bidir)
+            skip_connections=skip_connections, bidir=bidir, dropout=dropout)
 
     def create_attention(self, gru_con, in_con_mask, condition):
 
         # (batch_size, n_attention)
-        gru_cond2 = non_flattening_dense_layer(gru_con, self.n_attention,
-                                               nonlinearity=None)
+        gru_cond2 = non_flattening_dense_layer(
+            gru_con, self.in_con_mask, self.n_attention, nonlinearity=None)
         gru_que2 = DenseLayer(condition, self.n_attention, nonlinearity=None)
         gru_que2 = dimshuffle(gru_que2, (0, 'x', 1))
 
         att = ElemwiseSumLayer([gru_cond2, gru_que2])
         att = NonlinearityLayer(att, T.tanh)
-        att = SliceLayer(non_flattening_dense_layer(att, 1, nonlinearity=None),
-                         indices=0, axis=2)
+        att = SliceLayer(non_flattening_dense_layer(
+            att, self.in_con_mask, 1, nonlinearity=None), indices=0, axis=2)
 
         att_softmax = SequenceSoftmax(att, self.in_con_mask)
 

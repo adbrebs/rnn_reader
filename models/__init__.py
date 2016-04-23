@@ -5,7 +5,9 @@ import theano.tensor as T
 
 from lasagne.layers import (
     InputLayer, MergeLayer, Layer, ElemwiseMergeLayer, dimshuffle,
-    ReshapeLayer, DenseLayer, ElemwiseSumLayer, concat)
+    ReshapeLayer, DenseLayer, ElemwiseSumLayer, concat, DropoutLayer,
+    get_output)
+from lasagne.objectives import categorical_accuracy, categorical_crossentropy
 
 floatX = theano.config.floatX = 'float32'
 
@@ -13,7 +15,7 @@ floatX = theano.config.floatX = 'float32'
 class ReaderModel:
     def __init__(self, vocab_size, n_entities, embedding_size, residual=False,
                  depth_rnn=1, grad_clipping=10, skip_connections=False,
-                 bidir=False):
+                 bidir=False, dropout=False):
         self.vocab_size = vocab_size
         self.n_entities = n_entities
         self.embedding_size = embedding_size
@@ -22,6 +24,8 @@ class ReaderModel:
         self.grad_clipping = grad_clipping
         self.skip_connections = skip_connections
         self.bidir = bidir
+        self.dropout = dropout
+        self.net = None
 
         self.tg = T.vector('tg', 'int32')
         self.cand = T.matrix('candidates', 'int32')
@@ -42,6 +46,17 @@ class ReaderModel:
 
     def init_virtual(self):
         raise NotImplemented
+
+    def compute_cost(self, deterministic=False):
+        output = get_output(self.net, deterministic=deterministic)
+
+        cost = categorical_crossentropy(output, self.tg).mean()
+        cost.name = 'negll'
+
+        accuracy = categorical_accuracy(output, self.tg).mean()
+        accuracy.name = 'accuracy'
+
+        return cost, accuracy
 
     def create_debug_values(self):
         """
@@ -264,31 +279,38 @@ def apply_mask(layer_seq, layer_seq_mask):
 
 
 def create_deep_rnn(layer, layer_mask, layer_class, depth, residual=False,
-                    skip_connections=False, bidir=False, **kwargs):
+                    skip_connections=False, bidir=False, dropout=None,
+                    **kwargs):
     layers = [layer]
     for i in range(depth):
         if skip_connections and i > 0:
-            layer = concat([layers[i-1], layer], axis=2)
+            layer = concat([layers[0], layer], axis=2)
 
         new_layer = layer_class(layer, mask_input=layer_mask, **kwargs)
 
         if bidir:
             layer_bw = layer_class(layer, mask_input=layer_mask,
                                    backwards=True, **kwargs)
-            new_layer = concat([new_layer, layer_bw])
+            new_layer = concat([new_layer, layer_bw], axis=2)
 
         if residual:
             layer = ElemwiseSumLayer([layer, new_layer])
         else:
             layer = new_layer
 
+        if skip_connections and i == depth-1:
+            layer = concat([layer] + layers[1:], axis=2)
+
+        if dropout:
+            layer = DropoutLayer(layer, p=dropout)
+
         layers.append(layer)
 
     return layer
 
 
-def non_flattening_dense_layer(self, layer, *args, **kwargs):
-    batchsize, seqlen = self.in_con.input_var.shape
+def non_flattening_dense_layer(layer, mask, num_units, *args, **kwargs):
+    batchsize, seqlen = mask.input_var.shape
     l_flat = ReshapeLayer(layer, (-1, [2]))
-    l_dense = DenseLayer(l_flat, *args, **kwargs)
+    l_dense = DenseLayer(l_flat, num_units, *args, **kwargs)
     return ReshapeLayer(l_dense, (batchsize, seqlen, -1))
