@@ -1,5 +1,3 @@
-from numpy.random import choice, uniform, randint
-
 from models.attention import EfficientAttentionModel
 
 
@@ -12,19 +10,18 @@ sort_batch_count = 20
 vocab_size = 29958
 n_entities = 550
 batch_size = 32
-dump = True
 
 # Architecture
-embedding_size = randint(100, 400)
-n_hidden_que = randint(100, 400)
-n_hidden_con = n_hidden_que
-n_out_hidden = randint(100, 400)
-depth_rnn = choice([1, 2, 3])
+embedding_size = 256
+n_hidden_que = 256
+n_hidden_con = 256
+n_out_hidden = 256
+depth_rnn = 1
 grad_clipping = 10
 residual = False
-skip_connections = choice([True, False])
-bidir = choice([True, False])
-dropout = choice([None, 0.1, 0.2, 0.3, 0.4, 0.5])
+skip_connections = False
+bidir = False
+dropout = 0.3
 
 model = EfficientAttentionModel(
     vocab_size=vocab_size,
@@ -41,11 +38,9 @@ model = EfficientAttentionModel(
 
 # Training
 algo = 'adam'
-learning_rate = uniform(0.0001, 0.001)
+learning_rate = 0.001
 # algo = 'momentum'
 # learning_rate = 0.001
-max_iter = 120000
-max_time = 3600 * 22
 
 # Monitoring
 train_freq_print = 100

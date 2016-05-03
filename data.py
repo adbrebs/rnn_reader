@@ -183,14 +183,22 @@ def create_data_generator(path, vocab_file, config):
 
 
 def create_data_generators(cf):
-    data_path = os.path.join(os.getenv("TMP_PATH"), "deepmind-qa/cnn")
+    data_path = os.path.join(os.getenv("TMP_PATH"), "deepmind-qa")
+    original_data_path = os.path.join(os.getenv("DATA_PATH"), "deepmind-qa")
 
-    if not os.path.exists(data_path):
-        original_data_path = os.path.join(os.getenv("DATA_PATH"), "deepmind-qa")
+    dont_dump = hasattr(cf, 'dump') and not cf.dump
+
+    if dont_dump:
+        data_path = original_data_path
+        print '  Data will not be dumped locally'
+    elif not os.path.exists(data_path):
         print '  Dumping data in local folder...',
         shutil.copytree(original_data_path, data_path)
         print ' dumping finished.'
+    else:
+        print '  Data had already been dumped locally before'
 
+    data_path = os.path.join(data_path, 'cnn')
     train_path = os.path.join(data_path, "questions/training")
     valid_path = os.path.join(data_path, "questions/validation")
     test_path = os.path.join(data_path, "questions/test")

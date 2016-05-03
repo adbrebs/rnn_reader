@@ -29,15 +29,14 @@ def main(cf):
     # DATA #
     ########
 
-    print 'Create data generators...'
+    print 'Creating data generators...'
     train_iterator, valid_iterator, test_iterator = create_data_generators(cf)
 
     ##############################
     # COST, GRADIENT AND UPDATES #
     ##############################
 
-    print 'Build model...',
-    tg = cf.model.tg
+    print 'Building model...'
 
     cost, accuracy = cf.model.compute_cost(deterministic=False)
     cost_val, accuracy_val = cf.model.compute_cost(deterministic=True)
@@ -114,8 +113,10 @@ if __name__ == "__main__":
 
     if not options.job_id:
         job_id = np.random.randint(10**6)
+        folder = options.config_path + '_' + str(job_id)
     else:
         job_id = options.job_id
+        folder = job_id
 
     print 'EXP name: {}'.format(options.exp_name)
     print 'config file: {}'.format(options.config_path)
@@ -124,9 +125,8 @@ if __name__ == "__main__":
     config = imp.load_source('config', options.config_path)
 
     config_name = os.path.splitext(options.config_path)[0]
-    dump_path = os.path.join(os.getenv('TMP_PATH'), 'deepmind_qa',
-                             options.exp_name,
-                             config_name + '_' + str(job_id))
+    dump_path = os.path.join(os.getenv('TMP_PATH'), 'QA',
+                             options.exp_name, folder)
     if not os.path.exists(dump_path):
         os.makedirs(dump_path)
     config.dump_path = dump_path
