@@ -5,6 +5,8 @@ Lasagne/Theano implementation of the attentive reader of the following paper fro
 Karl Moritz Hermann, Tomáš Kočiský, Edward Grefenstette, Lasse Espeholt, Will Kay, Mustafa Suleyman, Phil Blunsom,  
 NIPS 2015
 
+Although our model yields slightly worse results than Deepmind's paper, it is considerably faster to train (less than 10 hours to reach a validation accuracy of 62%).
+
 # Instructions
 
 0) Clone the repository 
@@ -14,7 +16,7 @@ NIPS 2015
 2) Create a $DATA_PATH env variable with the path of the dataset folder. More precisely the dataset folder should have the following structure: 
 $DATA_PATH > deepmind-qa > cnn > questions and stats folder 
 
-3) Go to the cloned repository and run ``python main.py -s config/small/attention_efficient_small.py`` 
+3) Go to the cloned repository and run ``python main.py -s config/small/attention_softmax_small.py`` 
 
 
 It takes **less than 10 hours** to reach a validation performance of 62% on a Titan X.
