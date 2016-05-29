@@ -12,16 +12,14 @@ n_entities = 550
 batch_size = 32
 
 # Architecture
-embedding_size = 256
-n_hidden = 256
-n_out_hidden = 256
+embedding_size = 100
+n_hidden = 100
+n_out_hidden = 100
 depth_rnn = 1
 grad_clipping = 10
 residual = False
 skip_connections = False
 bidir = False
-dropout = 0.3
-
 model = GRUOneSeqModel(
     vocab_size=vocab_size,
     embedding_size=embedding_size,
@@ -31,8 +29,7 @@ model = GRUOneSeqModel(
     depth_rnn=depth_rnn,
     grad_clipping=grad_clipping,
     residual=residual,
-    bidir=bidir,
-    dropout=dropout)
+    bidir=bidir)
 
 # Training
 algo = 'adam'

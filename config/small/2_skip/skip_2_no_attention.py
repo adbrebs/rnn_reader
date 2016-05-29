@@ -1,4 +1,4 @@
-from models.no_attention import GRUModel
+from models.no_attention import GRUOneSeqModel
 
 
 # Data generation
@@ -20,7 +20,7 @@ grad_clipping = 10
 residual = False
 skip_connections = True
 bidir = False
-model = GRUModel(
+model = GRUOneSeqModel(
     vocab_size=vocab_size,
     embedding_size=embedding_size,
     n_hidden=n_hidden,
