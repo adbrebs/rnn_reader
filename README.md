@@ -5,7 +5,9 @@ Lasagne/Theano implementation of the attentive reader of the following paper fro
 Karl Moritz Hermann, Tomáš Kočiský, Edward Grefenstette, Lasse Espeholt, Will Kay, Mustafa Suleyman, Phil Blunsom,  
 NIPS 2015
 
-Although our model yields slightly worse results than Deepmind's paper, it is considerably faster to train (less than 10 hours to reach a validation accuracy of 62%).
+Our attentive reader architecture/hyperparameters are different from Deepmind's, it is considerably faster to train, **reaching 62.1% accuracy in only 4 hours** (green curve below).
+
+![img](https://raw.githubusercontent.com/adbrebs/rnn_reader/master/training_profile.png "Guillaume Apollinaire")
 
 # Instructions
 
@@ -16,10 +18,9 @@ Although our model yields slightly worse results than Deepmind's paper, it is co
 2) Create a $DATA_PATH env variable with the path of the dataset folder. More precisely the dataset folder should have the following structure: 
 $DATA_PATH > deepmind-qa > cnn > questions and stats folder 
 
-3) Go to the cloned repository and run ``python main.py -s config/small/attention_softmax.py`` 
+3) Go to the cloned repository and run ``python main.py -s config/big/attention_softmax.py``.
 
-
-It takes **less than 10 hours** to reach a validation performance of 62% on a Titan X.
+It should take **about 4 hours** to reach a validation performance of 62% on a Titan X.
 
 # Differences between deepmind's model and ours
 If the attentive reader mechanism is the same, there are many architecture differences with Deepmind's model. 
