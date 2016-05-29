@@ -32,6 +32,9 @@ In particular:
 - our model
 - no bidirectional layer, but a single and small (256 units) GRU layer
 
+The config file of our architecture:
+https://github.com/adbrebs/rnn_reader/blob/master/config/big/attention_softmax.py
+
 # Requirements
 
 - Theano
