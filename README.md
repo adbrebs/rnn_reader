@@ -1,4 +1,4 @@
-# Attentive reader from "Teaching Machines to Read and Comprehend"
+# Fast attentive reader from "Teaching Machines to Read and Comprehend"
 Lasagne/Theano implementation of the attentive reader of the following paper from Google DeepMind in Theano/Lasagne.
 
 [Teaching Machines to Read and Comprehend](http://arxiv.org/abs/1506.03340),  
