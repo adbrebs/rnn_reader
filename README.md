@@ -30,7 +30,7 @@ In particular:
 - we don't use dropout
 - we use ADAM as gradient descent rule
 - our model
-- no bidirectional layer, but a single and small (100 units) GRU layer
+- no bidirectional layer, but a single and small (256 units) GRU layer
 
 # Requirements
 
