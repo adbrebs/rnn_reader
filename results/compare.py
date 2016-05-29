@@ -7,14 +7,14 @@ import matplotlib.pyplot as plt
 parent_path = '/Users/adeb/results/QA/'
 
 FOLDERS = [
-    ('993235127187', 'GRU concat'),
-    ('756555092286', 'attention cheap'),
+    # ('993235127187', 'GRU concat'),
+    # ('756555092286', 'attention cheap'),
     ('356855230263', 'attention softmax'),
     #
     # ('res_2_no_attention_343181', 'GRU concat 2 res'),
     # ('res_2_attention_softmax_667446', 'attention softmax 2 res'),
     # ('res_2_attention_efficient_small_267959', 'attention efficient 2 res'),
-    #
+    # me
     # ('skip_2_attention_efficient_small_714087', 'attention efficient 2 skip'),
     # ('skip_2_attention_softmax_623583', 'attention softmax 2 skip'),
     # ('skip_2_no_attention_614797', 'GRU concat 2 skip'),
@@ -23,7 +23,7 @@ FOLDERS = [
     # ('bdir_attention_softmax_276805', 'bidir softmax'),
     # ('bdir_no_attention_132591', 'bidir GRU concat'),
 
-    # ('attention_softmax_109352', 'big softmax'),
+    ('attention_softmax_109352', 'big softmax'),
     # ('no_attention_295573', 'big GRU concat'),
     # ('attention_efficient_830659', 'big efficient'),
     #
