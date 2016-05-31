@@ -5,11 +5,11 @@ Lasagne/Theano implementation of the attentive reader of the following paper fro
 Karl Moritz Hermann, Tomáš Kočiský, Edward Grefenstette, Lasse Espeholt, Will Kay, Mustafa Suleyman, Phil Blunsom,  
 NIPS 2015
 
-Our attentive reader architecture/hyperparameters are different from Deepmind's, it is considerably faster to train, **reaching 62.1% accuracy in only 4-5 hours** (green curve below). Learning starts straight away, the plateau phase is very short.
+Our attentive reader architecture is fast to train and reaches **62.1% accuracy in only 4-5 hours** (green curve below). Learning starts straight away, the plateau phase is very short.
 
 ![img](https://raw.githubusercontent.com/adbrebs/rnn_reader/master/training_profile.png "Raccoon demon")
 
-# Instructions
+## Instructions
 
 0) Clone the repository 
 
@@ -22,7 +22,7 @@ $DATA_PATH > deepmind-qa > cnn > questions and stats folder
 
 It should take **about 4-5 hours** to reach a validation performance of 62% on a Titan X.
 
-# Differences between deepmind's model and ours
+## Differences between deepmind's model and ours
 If the attentive reader mechanism is the same, there are several architecture differences compared to Deepmind's model. 
 In particular:
 
@@ -38,14 +38,14 @@ In particular:
 The config file of our architecture:
 https://github.com/adbrebs/rnn_reader/blob/master/config/big/attention_softmax.py
 
-# Requirements
+## Requirements
 
 - Theano
 - Lasagne
 - Fuel (for the data pipeline)
 - [Raccoon](https://github.com/adbrebs/raccoon) (to monitor training)
 
-# Credit
+## Credit
 
 Our code relies on the fuel data extensions developed by Thomas Mesnard, Alex Auvolat and Étienne Simon: https://github.com/thomasmesnard/DeepMind-Teaching-Machines-to-Read-and-Comprehend
 
