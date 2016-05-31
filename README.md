@@ -1,5 +1,5 @@
 # Fast attentive reader from "Teaching Machines to Read and Comprehend"
-Lasagne/Theano implementation of the attentive reader of the following paper from Google DeepMind in Theano/Lasagne.
+Lasagne/Theano implementation of the attentive reader of the following paper from Google DeepMind.
 
 [Teaching Machines to Read and Comprehend](http://arxiv.org/abs/1506.03340),  
 Karl Moritz Hermann, Tomáš Kočiský, Edward Grefenstette, Lasse Espeholt, Will Kay, Mustafa Suleyman, Phil Blunsom,  
