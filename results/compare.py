@@ -8,8 +8,8 @@ parent_path = '/Users/adeb/results/QA/'
 
 FOLDERS = [
     # ('993235127187', 'GRU concat'),
-    # ('756555092286', 'attention cheap'),
-    ('356855230263', 'attention softmax'),
+    ('756555092286', 'attention cheap'),
+    # ('356855230263', 'attention softmax'),
     #
     # ('res_2_no_attention_343181', 'GRU concat 2 res'),
     # ('res_2_attention_softmax_667446', 'attention softmax 2 res'),
@@ -23,9 +23,9 @@ FOLDERS = [
     # ('bdir_attention_softmax_276805', 'bidir softmax'),
     # ('bdir_no_attention_132591', 'bidir GRU concat'),
 
-    ('attention_softmax_109352', 'big softmax'),
+    # ('attention_softmax_109352', 'big softmax'),
     # ('no_attention_295573', 'big GRU concat'),
-    # ('attention_efficient_830659', 'big efficient'),
+    ('attention_efficient_830659', 'big efficient'),
     #
     # ('attention_efficient.py_396396', 'big efficient dropout'),
     # ('no_attention.py_29858', 'big GRU concat dropout'),
