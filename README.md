@@ -43,7 +43,7 @@ https://github.com/adbrebs/rnn_reader/blob/master/config/big/attention_softmax.p
 - Theano
 - Lasagne
 - Fuel (for the data pipeline)
-- [Raccoon](https://github.com/adbrebs/raccoon) (to monitor training)
+- [Raccoon](https://github.com/adbrebs/raccoon) (to monitor training): NEW: you need a earlier version: git checkout 5174d65e69f7cf7a7b8fd26db6b6eab9a48d0339
 
 ## Credit
 
